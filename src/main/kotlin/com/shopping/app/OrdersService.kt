@@ -15,8 +15,9 @@ fun main(args: Array<String>) {
 }
 
 fun calculatePrice(itemsStr: String): Double {
-    val availableItems = arrayListOf(Item("orange", 0.25), Item("apple", 0.60))
+    val availableItems = arrayListOf(Item("orange", 0.25, 2), Item("apple", 0.60, 3))
     var total = 0.00
+    var allItemsInStock = true;
     if (itemsStr != "") {
         //convert to lowercase and split into individual items
         val items = itemsStr.toLowerCase().split(',').toList()
@@ -28,18 +29,28 @@ fun calculatePrice(itemsStr: String): Double {
         } else {
             //get count of each item entered
             val itemCount = items.groupingBy { it }.eachCount()
-            //apply offers - b1g1 for apple , b3 pay for 2 for orange
-            val offerMap = applyOffer(itemCount)
-            //get the total amount for entered items post offer
-            offerMap.forEach { (k, v) ->
-                total += availableItems.first { item -> item.name == k }.price * (v)
+            for (entry in itemCount) {
+                if (availableItems.first { it.name == entry.key }.stockCount < entry.value) {
+                    EventBus.getDefault()
+                        .post(OrderFailed("Stock is limited for ${entry.key}.Unable to place order successfully."))
+                    allItemsInStock = false;
+                    break;
+                }
             }
+            if (allItemsInStock) {
+                //apply offers - b1g1 for apple , b3 pay for 2 for orange
+                val offerMap = applyOffer(itemCount)
+                //get the total amount for entered items post offer
+                offerMap.forEach { (k, v) ->
+                    total += availableItems.first { item -> item.name == k }.price * (v)
+                }
 
-            //println("$$total")
-            EventBus.getDefault().post(OrderSubmitted(Random().nextInt(100) + 1,
-                "Order Placed Successfully",
-                LocalDate.now().plus(2, ChronoUnit.DAYS),
-                total))
+                //println("$$total")
+                EventBus.getDefault().post(OrderSubmitted(Random().nextInt(100) + 1,
+                    "Order Placed Successfully",
+                    LocalDate.now().plus(2, ChronoUnit.DAYS),
+                    total))
+            }
         }
     } else {
         println("No Items Entered. Unable to place Order")
@@ -69,7 +80,7 @@ fun calculateOffer(count: Int?, offer: Int): Int {
 }
 
 
-data class Item(val name: String, val price: Double)
+data class Item(val name: String, val price: Double, var stockCount: Int)
 
 data class OrderSubmitted(val orderId: Int, val status: String, val expectedDeliveryDate: LocalDate, val total: Double)
 
