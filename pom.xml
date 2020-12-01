@@ -84,6 +84,12 @@
             <artifactId>kotlin-stdlib-jdk8</artifactId>
             <version>1.4.20</version>
         </dependency>
+        <!-- https://mvnrepository.com/artifact/org.greenrobot/eventbus -->
+        <dependency>
+            <groupId>org.greenrobot</groupId>
+            <artifactId>eventbus</artifactId>
+            <version>3.2.0</version>
+        </dependency>
     </dependencies>
 
 </project>

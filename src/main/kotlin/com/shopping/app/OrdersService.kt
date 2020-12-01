@@ -1,12 +1,17 @@
 package com.shopping.app
 
+import org.greenrobot.eventbus.EventBus
+import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 import java.util.*
 
 fun main(args: Array<String>) {
+    MailService.registerListeners()
     println("Enter items to purchase separated by commas:")
     //read line from command line
     val items = Scanner(System.`in`).nextLine()
     calculatePrice(items)
+    MailService.deregisterListeners()
 }
 
 fun calculatePrice(itemsStr: String): Double {
@@ -17,7 +22,9 @@ fun calculatePrice(itemsStr: String): Double {
         val items = itemsStr.toLowerCase().split(',').toList()
         //check if there are invalid items (other than apple and orange)
         if (!items.all(availableItems.map { it.name }::contains)) {
-            println("There are invalid items in the order")
+            //println("There are invalid items in the order")
+            EventBus.getDefault()
+                .post(OrderFailed("There are invalid items in the order.Unable to place order successfully."))
         } else {
             //get count of each item entered
             val itemCount = items.groupingBy { it }.eachCount()
@@ -28,7 +35,11 @@ fun calculatePrice(itemsStr: String): Double {
                 total += availableItems.first { item -> item.name == k }.price * (v)
             }
 
-            println("$$total")
+            //println("$$total")
+            EventBus.getDefault().post(OrderSubmitted(Random().nextInt(100) + 1,
+                "Order Placed Successfully",
+                LocalDate.now().plus(2, ChronoUnit.DAYS),
+                total))
         }
     } else {
         println("No Items Entered. Unable to place Order")
@@ -46,7 +57,7 @@ fun applyOffer(itemCount: Map<String, Int>): Map<String, Int> {
 }
 //logic for calculating total items charged post offer
 fun calculateOffer(count: Int?, offer: Int): Int {
-    var offerCount: Int = 0
+    var offerCount = 0
     if (count != null) {
         offerCount = if (count < offer) {
             count
@@ -54,9 +65,12 @@ fun calculateOffer(count: Int?, offer: Int): Int {
             count - (count / offer)
         }
     }
-    return offerCount;
+    return offerCount
 }
 
 
 data class Item(val name: String, val price: Double)
 
+data class OrderSubmitted(val orderId: Int, val status: String, val expectedDeliveryDate: LocalDate, val total: Double)
+
+data class OrderFailed(val status: String)
